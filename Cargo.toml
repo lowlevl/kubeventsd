@@ -1,0 +1,22 @@
+[package]
+name = "kubeventsd"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.26.0", features = ["rt-multi-thread", "macros", "fs"] }
+futures = "0.3.27"
+
+serde = { version = "1.0.156", features = ["derive"] }
+serde_yaml = "0.9.19"
+envconfig = "0.10.0"
+chrono = "0.4.24"
+
+color-eyre = "0.6.2"
+tracing-subscriber = "0.3.16"
+tracing = "0.1.37"
+
+kube = { version = "0.80.0", features = ["runtime"] }
+k8s-openapi = { version = "0.17.0", features = ["v1_25"] }

@@ -1,0 +1,11 @@
+# Example confifuration for the Event exporter daemon
+---
+events:
+  # Exports all events to the `main` notifier
+  - to: [matrix]
+
+notifiers:
+  - name: matrix
+    spec:
+      kind: Matrix
+      room: "#"
