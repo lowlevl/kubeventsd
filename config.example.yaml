@@ -1,11 +1,14 @@
 # Example confifuration for the Event exporter daemon
 ---
 events:
-  # Exports all events to the `main` notifier
+  # Exports all events to the `matrix` notifier
   - to: [matrix]
 
 notifiers:
   - name: matrix
     spec:
       kind: Matrix
-      room: "#"
+      homeserverUrl: https://matrix.org
+      userId: "@tootparis-bot:matrix.org"
+      passwordEnv: MATRIX_PASSWORD
+      roomId: "!ckZCbuPXdzdLOgdQsq:matrix.org"

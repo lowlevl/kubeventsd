@@ -9,6 +9,9 @@ mod config;
 mod events;
 use events::{Event, EventExt};
 
+mod filter;
+use filter::Filter;
+
 mod notifiers;
 
 #[tokio::main]
@@ -21,13 +24,13 @@ async fn main() -> eyre::Result<()> {
         .try_init()
         .map_err(|err| eyre::eyre!(err))?;
 
-    let env = config::Config::init_from_env()?;
+    let env = config::EnvConfig::init_from_env()?;
 
     tracing::info!("Loading configuration file at '{}'", env.config_path);
 
-    let config: config::file::Config =
-        serde_yaml::from_reader(std::fs::File::open(env.config_path)?)
-            .wrap_err("While reading the configuration file")?;
+    let config: config::Config = serde_yaml::from_reader(std::fs::File::open(env.config_path)?)
+        .wrap_err("While reading the configuration file")?;
+    let filters = Filter::from_config(config).await?;
 
     let kube = kube::Client::try_default().await?;
     let info = kube.apiserver_version().await?;
@@ -58,7 +61,7 @@ async fn main() -> eyre::Result<()> {
                 }
 
                 // Process the event and log errors
-                if let Err(err) = events::process(&config, event).await {
+                if let Err(err) = events::process(&filters, event).await {
                     tracing::error!("Error while processing event: {err}");
                 }
             }
