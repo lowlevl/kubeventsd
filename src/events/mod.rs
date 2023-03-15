@@ -14,8 +14,28 @@ pub async fn process(rules: &[Rule], mut event: Event) -> eyre::Result<()> {
 
     let object = liquid::to_object(&event)?;
 
-    for rule in rules {
-        for RuleDestination { notifier, template } in &rule.destination {
+    for Rule { destination, rule } in rules {
+        if let (Some(reasons), Some(reason)) = (&rule.reason, &event.reason) {
+            if !reasons.contains(reason) {
+                continue;
+            }
+        }
+
+        if let (Some(types), Some(type_)) = (&rule.type_, &event.type_) {
+            if !types.contains(type_) {
+                continue;
+            }
+        }
+
+        if let (Some(namespaces), Some(namespace)) =
+            (&rule.namespace, &event.involved_object.namespace)
+        {
+            if !namespaces.contains(namespace) {
+                continue;
+            }
+        }
+
+        for RuleDestination { notifier, template } in destination {
             let message = template.render(&object)?;
             notifier.send(&message).await?;
         }

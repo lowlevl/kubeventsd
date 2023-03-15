@@ -2,15 +2,20 @@
 ---
 events:
   # Exports all events to the `matrix` notifier
-  - to: [matrix]
+  - reason: [Started, Completed]
+    to: [matrix]
+  - type: [Warning]
+    to: [matrix]
 
 notifiers:
   - name: matrix
     template: |
-      A **{{ reason }}** (_{{ type }}_) event occured at **{{ eventTime }}**:<br/>
+      {% if type == "Normal" %}ℹ{% else %}⚠️{% endif %} A **{{ reason }}** event occured at **{{ eventTime }}**:<br/>
       > {{ message }}
 
       This relates to the **{{ involvedObject.apiVersion }}:{{ involvedObject.kind }}** `{{ involvedObject.name }}` in the `{{ involvedObject.namespace }}` namespace.
+
+      ---
     spec:
       kind: Matrix
       homeserverUrl: https://matrix.org

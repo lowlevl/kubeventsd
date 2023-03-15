@@ -41,7 +41,8 @@ impl Rule {
                     ) as DynNotifier),
                 };
 
-                let template = Arc::new(liquid::Parser::new().parse(&config.template)?);
+                let liquid = liquid::ParserBuilder::new().stdlib().build()?;
+                let template = Arc::new(liquid.parse(&config.template)?);
 
                 Ok::<_, eyre::Report>((config.name, RuleDestination { notifier, template }))
             })
