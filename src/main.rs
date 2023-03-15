@@ -2,10 +2,14 @@ use color_eyre::eyre::{self, Context};
 use envconfig::Envconfig;
 use futures::StreamExt;
 
-use k8s_openapi::api::core::v1::Event;
 use kube::{runtime::WatchStreamExt, Api};
 
 mod config;
+
+mod events;
+use events::{Event, EventExt};
+
+mod notifiers;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -47,27 +51,16 @@ async fn main() -> eyre::Result<()> {
 
     loop {
         match events.next().await {
-            Some(Ok(ev)) => {
-                let time = ev
-                    .event_time
-                    .as_ref()
-                    .map(|time| time.0)
-                    .or(ev.last_timestamp.as_ref().map(|time| time.0))
-                    .or(ev.first_timestamp.as_ref().map(|time| time.0))
-                    .unwrap_or_default();
-
-                if time < start {
+            Some(Ok(event)) => {
+                if event.event_time() < start {
                     // Skip events observed before the startup of the daemon to avoid re-sending old ones
                     continue;
                 }
 
-                tracing::info!(
-                    "{:?} {:?} at {}: {:?}",
-                    ev.type_,
-                    ev.reason,
-                    time,
-                    ev.message
-                );
+                // Process the event and log errors
+                if let Err(err) = events::process(&config, event).await {
+                    tracing::error!("Error while processing event: {err}");
+                }
             }
             Some(Err(err)) => tracing::error!("Received an error while polling for events: {err}"),
             None => {
