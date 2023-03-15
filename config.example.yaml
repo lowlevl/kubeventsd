@@ -6,6 +6,11 @@ events:
 
 notifiers:
   - name: matrix
+    template: |
+      A **{{ reason }}** (_{{ type }}_) event occured at **{{ eventTime }}**:<br/>
+      > {{ message }}
+
+      This relates to the **{{ involvedObject.apiVersion }}:{{ involvedObject.kind }}** `{{ involvedObject.name }}` in the `{{ involvedObject.namespace }}` namespace.
     spec:
       kind: Matrix
       homeserverUrl: https://matrix.org

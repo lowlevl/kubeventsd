@@ -8,16 +8,22 @@ use super::{
     notifiers::{self, DynNotifier},
 };
 
-pub struct Filter {
-    pub filter: config::EventFilter,
-    pub to: Vec<Arc<DynNotifier>>,
+pub struct Rule {
+    pub rule: config::EventFilter,
+    pub destination: Vec<RuleDestination>,
 }
 
-impl Filter {
+#[derive(Clone)]
+pub struct RuleDestination {
+    pub template: Arc<liquid::Template>,
+    pub notifier: Arc<DynNotifier>,
+}
+
+impl Rule {
     pub async fn from_config(config: config::Config) -> eyre::Result<Vec<Self>> {
         // Instantiate all the notifiers in boxes
         let notifiers = futures::stream::iter(config.notifiers)
-            .then(|config| async {
+            .then(|config| async move {
                 let notifier = match config.spec {
                     config::NotifierSpec::Matrix {
                         homeserver_url,
@@ -27,7 +33,7 @@ impl Filter {
                     } => Arc::new(Box::new(
                         notifiers::Matrix::new(
                             homeserver_url,
-                            &user_id,
+                            user_id,
                             &std::env::var(password_env)?,
                             room_id,
                         )
@@ -35,7 +41,9 @@ impl Filter {
                     ) as DynNotifier),
                 };
 
-                Ok::<_, eyre::Report>((config.name, notifier))
+                let template = Arc::new(liquid::Parser::new().parse(&config.template)?);
+
+                Ok::<_, eyre::Report>((config.name, RuleDestination { notifier, template }))
             })
             .try_collect::<HashMap<_, _>>()
             .await?;
@@ -55,13 +63,13 @@ impl Filter {
                                     "Notifier named '{name}' was not defined in the configuration",
                                 )
                             })
-                            .map(Arc::clone)
+                            .map(Clone::clone)
                     })
                     .collect::<eyre::Result<Vec<_>>>()?;
 
                 Ok(Self {
-                    filter,
-                    to: notifiers,
+                    rule: filter,
+                    destination: notifiers,
                 })
             })
             .collect()

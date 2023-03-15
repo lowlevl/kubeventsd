@@ -9,18 +9,19 @@ edition = "2021"
 tokio = { version = "1.26.0", features = ["rt-multi-thread", "macros", "fs"] }
 futures = "0.3.27"
 
-serde = { version = "1.0.156", features = ["derive"] }
-serde_yaml = "0.9.19"
-envconfig = "0.10.0"
-chrono = "0.4.24"
-
 color-eyre = "0.6.2"
 tracing-subscriber = "0.3.16"
 tracing = "0.1.37"
 
-kube = { version = "0.80.0", features = ["runtime"] }
-k8s-openapi = { version = "0.17.0", features = ["v1_26"] }
-ruma = { version = "0.8.2", features = ["client", "client-reqwest", "client-api-c", "client-ext-client-api", "rand"] }
+serde = { version = "1.0.156", features = ["derive"] }
+serde_yaml = "0.9.19"
+envconfig = "0.10.0"
+chrono = "0.4.24"
 reqwest = "0.11.14"
 url = { version = "2.3.1", features = ["serde"] }
 async-trait = "0.1.66"
+
+kube = { version = "0.80.0", features = ["runtime"] }
+k8s-openapi = { version = "0.17.0", features = ["v1_26"] }
+ruma = { version = "0.8.2", features = ["client", "client-reqwest", "client-api-c", "client-ext-client-api", "rand", "markdown"] }
+liquid = "0.26.1"

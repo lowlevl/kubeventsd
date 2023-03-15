@@ -30,6 +30,7 @@ pub struct EventFilter {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Notifier {
     pub name: String,
+    pub template: String,
     pub spec: NotifierSpec,
 }
 
