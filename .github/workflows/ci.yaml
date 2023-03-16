@@ -2,8 +2,12 @@ on: push
 
 name: Continuous integration
 
+env:
+  # The name of the DockerHub repository
+  NAME: kubeventsd/kubeventsd
+
 jobs:
-  ci:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -50,3 +54,75 @@ jobs:
           use-cross: true
           command: clippy
           args: --release --all-features --target=${{ matrix.target.triple }} -- -D warnings
+
+      - name: Setup artifact for upload
+        run: |
+          # Create the `artifacts/` directory
+          mkdir -p artifacts
+          # Copy the built binary file, the ui and the Dockerfile
+          cp ./target/${{ matrix.target.triple }}/release/${{ env.PROJECT }} artifacts/built
+          cp -r ./Dockerfile ./ui ./artifacts/
+          # Save the target docker image's os/arch target in artifacts
+          echo ${{ matrix.target.os }} > artifacts/os
+          echo ${{ matrix.target.arch }} > artifacts/arch
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.target.triple }}
+          path: artifacts/*
+
+  deploy:
+    name: Deploy image on DockerHub
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    if: startsWith(github.ref, 'refs/tags/') # Deploy only on tags
+    env:
+      # Enable the use of `docker manifest` and docker BuildKit
+      DOCKER_CLI_EXPERIMENTAL: enabled
+      DOCKER_BUILDKIT: 1
+      # Identify the project name from the repository name
+      PROJECT: ${{ github.event.repository.name }}
+      # Set here the docker image name and tag
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create the image for each platform
+        run: |
+          # For each target arch, build the image, with the specified arch
+          for path in */; do
+            PLATFORM="$(cat ${path}/os)/$(cat ${path}/arch)"
+            IMAGE="${NAME}:latest-$(cat ${path}/arch)"
+
+            docker build --platform "${PLATFORM}" --tag "${IMAGE}" "${path}"
+            docker push "${IMAGE}"
+
+            echo "${IMAGE}" >> "./images"
+            echo "Successfully built and pushed the image with the following tag '${IMAGE}' for '${PLATFORM}'"
+          done
+
+      - name: Create the cross-platform images, tag them and push them to the repository
+        run: |
+          # Identify which tags need to deploy according to the ref
+          TAGS=("latest")
+          if [[ "${GITHUB_REF}" =~ ^refs/tags/([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            TAGS+=("${BASH_REMATCH[1]}" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}")
+          fi
+
+          for tag in "${TAGS[@]}"; do
+            IMAGE="${NAME}:${tag}"
+            echo "Tagging and pushing the image '${IMAGE}' to DockerHub"
+
+            # Create the cross-platform image as ${tag}
+            docker manifest create "${IMAGE}" $(cat ./images)
+            # Push it to Docker Hub
+            docker manifest push "${IMAGE}"
+          done
