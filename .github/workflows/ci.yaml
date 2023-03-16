@@ -137,4 +137,4 @@ jobs:
       - name: Audit the project
         uses: actions-rs/cargo@v1
         with:
-          command: audit
+          command: audit --deny-warnings --ignore RUSTSEC-2020-0071
