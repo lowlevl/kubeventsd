@@ -27,11 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install system libraries
-        run: sudo apt update && sudo apt install -y libssl-dev
-
       - uses: actions-rs/toolchain@v1
         with:
+          use-cross: true
           profile: minimal
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target.triple }}
