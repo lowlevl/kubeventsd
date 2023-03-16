@@ -66,9 +66,10 @@ jobs:
         run: |
           # Create the `artifacts/` directory
           mkdir -p artifacts
+
           # Copy the built binary file, the ui and the Dockerfile
           cp ./target/${{ matrix.target.triple }}/release/${{ env.PROJECT }} artifacts/built
-          cp -r ./Dockerfile ./ui ./artifacts/
+
           # Save the target docker image's os/arch target in artifacts
           echo ${{ matrix.target.os }} > artifacts/os
           echo ${{ matrix.target.arch }} > artifacts/arch
