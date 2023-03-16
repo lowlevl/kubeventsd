@@ -24,6 +24,10 @@ jobs:
             os: linux
             arch: arm64
 
+    env:
+      # Enable cargo sparse registry for crates.io
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+
     steps:
       - uses: actions/checkout@v2
 
