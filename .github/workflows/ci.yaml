@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "*"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    env:
+      # Identify the project name from the repository name
+      PROJECT: ${{ github.event.repository.name }}
+    strategy:
+      matrix:
+        target:
+          - triple: x86_64-unknown-linux-musl
+            os: linux
+            arch: amd64
+          - triple: aarch64-unknown-linux-musl
+            os: linux
+            arch: arm64
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Cache for cargo-related files
+        uses: actions/cache@v2
+        with:
+          path: |
+            /usr/share/rust/.cargo
+          key: ${{ matrix.target.triple }}-cargo-${{ hashFiles('**/Cargo.lock', '/usr/share/rust/.cargo/.crates.toml') }}
+          restore-keys: |
+            ${{ matrix.target.triple }}-cargo-
+      - name: Cache for compiled files
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./target
+          key: ${{ matrix.target.triple }}-build-${{ hashFiles('**/*.rs') }}
+          restore-keys: |
+            ${{ matrix.target.triple }}-build-
+      - name: Install toolchain for `${{ matrix.target.triple }}`
+        uses: actions-rs/toolchain@v1
+        with:
+          target: ${{ matrix.target.triple }}
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Build the project
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --all-features --target=${{ matrix.target.triple }}
+      - name: Setup artifact for upload
+        run: |
+          # Create the `artifacts/` directory
+          mkdir -p artifacts
+          # Copy the built binary file, the ui and the Dockerfile
+          cp ./target/${{ matrix.target.triple }}/release/${{ env.PROJECT }} artifacts/built
+          cp -r ./Dockerfile ./ui ./artifacts/
+          # Save the target docker image's os/arch target in artifacts
+          echo ${{ matrix.target.os }} > artifacts/os
+          echo ${{ matrix.target.arch }} > artifacts/arch
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.target.triple }}
+          path: artifacts/*
+
+  tests:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Cache for cargo-related files
+        uses: actions/cache@v2
+        with:
+          path: |
+            /usr/share/rust/.cargo
+          key: tests-cargo-${{ hashFiles('**/Cargo.lock', '/usr/share/rust/.cargo/.crates.toml') }}
+          restore-keys: |
+            tests-cargo-
+      - name: Cache for compiled files
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./target
+          key: tests-build-${{ hashFiles('**/*.rs') }}
+          restore-keys: |
+            tests-build-
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: clippy
+      - name: Test the project
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --all-features
+      - name: Lint the project
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --release --all-features -- --deny warnings
+
+  audit:
+    name: Audit dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Cache for cargo-related files
+        uses: actions/cache@v2
+        with:
+          path: |
+            /usr/share/rust/.cargo
+          key: audit-cargo-${{ hashFiles('**/Cargo.lock', '/usr/share/rust/.cargo/.crates.toml') }}
+          restore-keys: |
+            audit-cargo-
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Install cargo-audit
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-audit
+          use-tool-cache: true
+      - name: Audit the project
+        uses: actions-rs/cargo@v1
+        with:
+          command: audit
