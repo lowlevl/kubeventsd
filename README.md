@@ -1,4 +1,4 @@
-# kubeventsd: A small k8s event watcher daemon
+# kubeventsd: A small k8s event watcher daemon [![Continuous integration](https://github.com/Nurrl/kubeventsd/actions/workflows/ci.yaml/badge.svg)](https://github.com/Nurrl/kubeventsd/actions/workflows/ci.yaml)
 
 This project has been started as a need to monitor one of my kubernetes
 cluster, and notably the `Job`s failures, but can be used to monitor any kind of `core/v1:Event` in the cluster.
