@@ -47,33 +47,34 @@ async fn main() -> eyre::Result<()> {
     let events: Api<Event> = Api::all(kube);
     let events = kube::runtime::watcher(events, Default::default()).applied_objects();
 
-    let mut events = std::pin::pin!(events);
-
     let start = chrono::Utc::now();
 
     tracing::info!("Starting listening to events..");
 
-    loop {
-        match events.next().await {
-            Some(Ok(event)) => {
-                if event.event_time() < start {
-                    // Skip events observed before the startup of the daemon to avoid re-sending old ones
-                    continue;
-                }
+    events
+        .for_each_concurrent(None, |event| async {
+            match event {
+                Ok(event) => {
+                    if event.event_time() < start {
+                        // Skip events observed before the startup of the daemon to avoid re-sending old ones
+                        return;
+                    }
 
-                // Process the event and log errors
-                if let Err(err) = events::process(&rules, event).await {
-                    tracing::error!("Error while processing event: {err}");
+                    // Process the event and log errors
+                    if let Err(err) = events::process(&rules, event).await {
+                        tracing::error!("Error while processing event: {err}");
+                    }
+                }
+                Err(err) => {
+                    tracing::error!("Received an error while polling for events: {err}")
                 }
             }
-            Some(Err(err)) => tracing::error!("Received an error while polling for events: {err}"),
-            None => {
-                tracing::error!("Reached end-of-stream while polling for events, exiting");
+        })
+        .await;
 
-                break Err(eyre::eyre!(
-                    "Reached end-of-stream, this should never happen"
-                ));
-            }
-        }
-    }
+    tracing::error!("Reached end-of-stream while polling for events, exiting");
+
+    Err(eyre::eyre!(
+        "Reached end-of-stream, this should never happen"
+    ))
 }
