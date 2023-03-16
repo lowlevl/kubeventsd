@@ -20,6 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Install system libraries
+        run: apt update && apt install -Y libssl-dev
+
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
