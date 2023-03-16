@@ -3,7 +3,7 @@ use color_eyre::eyre;
 pub use k8s_openapi::api::core::v1::Event;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::MicroTime;
 
-use super::rule::{Rule, RuleDestination};
+use super::rule::Rule;
 
 mod ext;
 pub use ext::EventExt;
@@ -11,8 +11,6 @@ pub use ext::EventExt;
 /// Process events and send them to the notifiers
 pub async fn process(rules: &[Rule], mut event: Event) -> eyre::Result<()> {
     event.event_time = Some(MicroTime(event.event_time()));
-
-    let object = liquid::to_object(&event)?;
 
     for Rule { destination, rule } in rules {
         if let (Some(reasons), Some(reason)) = (&rule.reason, &event.reason) {
@@ -35,9 +33,8 @@ pub async fn process(rules: &[Rule], mut event: Event) -> eyre::Result<()> {
             }
         }
 
-        for RuleDestination { notifier, template } in destination {
-            let message = template.render(&object)?;
-            notifier.send(&message).await?;
+        for notifier in destination {
+            notifier.send(&event).await?;
         }
     }
 

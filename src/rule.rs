@@ -10,13 +10,7 @@ use super::{
 
 pub struct Rule {
     pub rule: config::EventFilter,
-    pub destination: Vec<RuleDestination>,
-}
-
-#[derive(Clone)]
-pub struct RuleDestination {
-    pub template: Arc<liquid::Template>,
-    pub notifier: Arc<DynNotifier>,
+    pub destination: Vec<Arc<DynNotifier>>,
 }
 
 impl Rule {
@@ -26,12 +20,14 @@ impl Rule {
             .then(|config| async move {
                 let notifier = match config.spec {
                     config::NotifierSpec::Matrix {
+                        template,
                         homeserver_url,
                         user_id,
                         password_env,
                         room_id,
                     } => Arc::new(Box::new(
                         notifiers::Matrix::new(
+                            &template,
                             homeserver_url,
                             user_id,
                             &std::env::var(password_env)?,
@@ -39,12 +35,12 @@ impl Rule {
                         )
                         .await?,
                     ) as DynNotifier),
+                    config::NotifierSpec::Webhook { url } => {
+                        Arc::new(Box::new(notifiers::Webhook::new(url).await?) as DynNotifier)
+                    }
                 };
 
-                let liquid = liquid::ParserBuilder::new().stdlib().build()?;
-                let template = Arc::new(liquid.parse(&config.template)?);
-
-                Ok::<_, eyre::Report>((config.name, RuleDestination { notifier, template }))
+                Ok::<_, eyre::Report>((config.name, notifier))
             })
             .try_collect::<HashMap<_, _>>()
             .await?;

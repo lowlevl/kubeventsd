@@ -30,7 +30,6 @@ pub struct EventFilter {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Notifier {
     pub name: String,
-    pub template: String,
     pub spec: NotifierSpec,
 }
 
@@ -39,9 +38,12 @@ pub struct Notifier {
 pub enum NotifierSpec {
     #[serde(rename_all = "camelCase")]
     Matrix {
+        template: String,
         homeserver_url: url::Url,
         user_id: ruma::OwnedUserId,
         password_env: String,
         room_id: ruma::OwnedRoomId,
     },
+    #[serde(rename_all = "camelCase")]
+    Webhook { url: url::Url },
 }

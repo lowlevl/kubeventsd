@@ -2,21 +2,27 @@ use async_trait::async_trait;
 use color_eyre::eyre;
 use ruma::{Client, OwnedRoomId, OwnedUserId, TransactionId};
 
-#[derive(Debug)]
+use super::Event;
+
 pub struct Matrix {
     client: Client<reqwest::Client>,
+    template: liquid::Template,
     user_id: OwnedUserId,
     room_id: OwnedRoomId,
 }
 
 impl Matrix {
     pub async fn new(
+        template: &str,
         homeserver_url: url::Url,
         user_id: OwnedUserId,
         password: &str,
         room_id: OwnedRoomId,
     ) -> eyre::Result<Self> {
         tracing::info!("Connecting Matrix notifier as '{user_id}' on room '{room_id}'");
+
+        let liquid = liquid::ParserBuilder::new().stdlib().build()?;
+        let template = liquid.parse(template)?;
 
         let client = Client::builder()
             .homeserver_url(homeserver_url.into())
@@ -35,6 +41,7 @@ impl Matrix {
             .await?;
 
         Ok(Self {
+            template,
             client,
             user_id,
             room_id,
@@ -44,14 +51,17 @@ impl Matrix {
 
 #[async_trait]
 impl super::Notifier for Matrix {
-    async fn send(&self, text: &str) -> eyre::Result<()> {
+    async fn send(&self, event: &Event) -> eyre::Result<()> {
+        let object = liquid::to_object(&event)?;
+        let message = self.template.render(&object)?;
+
         tracing::debug!(
-            "Sending message as '{}' on room '{}': {text}",
+            "Sending event as '{}' on room '{}': {message:?}",
             self.user_id,
             self.room_id
         );
 
-        let message = ruma::events::room::message::RoomMessageEventContent::text_markdown(text);
+        let message = ruma::events::room::message::RoomMessageEventContent::text_markdown(message);
         let request = ruma::api::client::message::send_message_event::v3::Request::new(
             self.room_id.clone(),
             TransactionId::new(),

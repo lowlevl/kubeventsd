@@ -5,19 +5,23 @@ events:
   - reason: [Started, Completed]
     to: [matrix]
   - type: [Warning]
-    to: [matrix]
+    to: [matrix, webhook.site]
 
 notifiers:
+  - name: webhook.site
+    spec:
+      kind: Webhook
+      url: https://webhook.site/16c3a0fc-5975-40e9-844d-5c2e27bc7353
   - name: matrix
-    template: |
-      {% if type == "Normal" %}ℹ{% else %}⚠️{% endif %} A **{{ reason }}** event occured at **{{ eventTime }}**:<br/>
-      > {{ message }}
-
-      This relates to the **{{ involvedObject.apiVersion }}:{{ involvedObject.kind }}** `{{ involvedObject.name }}` in the `{{ involvedObject.namespace }}` namespace.
-
-      ---
     spec:
       kind: Matrix
+      template: |
+        {% if type == "Normal" %}ℹ{% else %}⚠️{% endif %} A **{{ reason }}** event occured at **{{ eventTime }}**:<br/>
+        > {{ message }}
+
+        This relates to the **{{ involvedObject.apiVersion }}:{{ involvedObject.kind }}** `{{ involvedObject.name }}` in the `{{ involvedObject.namespace }}` namespace.
+
+        ---
       homeserverUrl: https://matrix.org
       userId: "@tootparis-bot:matrix.org"
       passwordEnv: MATRIX_PASSWORD
