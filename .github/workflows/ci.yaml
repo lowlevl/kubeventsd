@@ -6,6 +6,9 @@ env:
   # The name of the DockerHub repository
   NAME: kubeventsd/kubeventsd
 
+  # Identify the project name from the repository name
+  PROJECT: ${{ github.event.repository.name }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
