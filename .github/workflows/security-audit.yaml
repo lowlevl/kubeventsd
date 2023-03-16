@@ -6,6 +6,9 @@ on:
 
 name: Security audit
 
+permissions:
+  contents: "write"
+
 jobs:
   security-audit:
     runs-on: ubuntu-latest
