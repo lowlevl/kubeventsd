@@ -19,7 +19,7 @@ impl Matrix {
         password: &str,
         room_id: OwnedRoomId,
     ) -> eyre::Result<Self> {
-        tracing::info!("Connecting Matrix notifier as '{user_id}' on room '{room_id}'");
+        tracing::info!("Setting up Matrix sender as '{user_id}' on room '{room_id}'");
 
         let liquid = liquid::ParserBuilder::new().stdlib().build()?;
         let template = liquid.parse(template)?;
@@ -50,7 +50,7 @@ impl Matrix {
 }
 
 #[async_trait]
-impl super::Notifier for Matrix {
+impl super::Sender for Matrix {
     async fn send(&self, event: &Event) -> eyre::Result<()> {
         let object = liquid::to_object(&event)?;
         let message = self.template.render(&object)?;

@@ -9,10 +9,10 @@ mod config;
 mod events;
 use events::{Event, EventExt};
 
-mod rule;
-use rule::Rule;
+mod rules;
+use rules::Rule;
 
-mod notifiers;
+mod senders;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {

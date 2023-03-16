@@ -5,28 +5,28 @@ use futures::stream::{StreamExt, TryStreamExt};
 
 use super::{
     config,
-    notifiers::{self, DynNotifier},
+    senders::{self, DynSender},
 };
 
 pub struct Rule {
     pub rule: config::EventFilter,
-    pub destination: Vec<Arc<DynNotifier>>,
+    pub destination: Vec<Arc<DynSender>>,
 }
 
 impl Rule {
     pub async fn from_config(config: config::Config) -> eyre::Result<Vec<Self>> {
-        // Instantiate all the notifiers in boxes
-        let notifiers = futures::stream::iter(config.notifiers)
+        // Instantiate all the senders as Box<dyn Sender>
+        let senders = futures::stream::iter(config.senders)
             .then(|config| async move {
-                let notifier = match config.spec {
-                    config::NotifierSpec::Matrix {
+                let sender = match config.spec {
+                    config::SenderSpec::Matrix {
                         template,
                         homeserver_url,
                         user_id,
                         password_env,
                         room_id,
                     } => Arc::new(Box::new(
-                        notifiers::Matrix::new(
+                        senders::Matrix::new(
                             &template,
                             homeserver_url,
                             user_id,
@@ -34,13 +34,13 @@ impl Rule {
                             room_id,
                         )
                         .await?,
-                    ) as DynNotifier),
-                    config::NotifierSpec::Webhook { url } => {
-                        Arc::new(Box::new(notifiers::Webhook::new(url).await?) as DynNotifier)
+                    ) as DynSender),
+                    config::SenderSpec::Webhook { url } => {
+                        Arc::new(Box::new(senders::Webhook::new(url).await?) as DynSender)
                     }
                 };
 
-                Ok::<_, eyre::Report>((config.name, notifier))
+                Ok::<_, eyre::Report>((config.name, sender))
             })
             .try_collect::<HashMap<_, _>>()
             .await?;
@@ -49,15 +49,15 @@ impl Rule {
             .events
             .into_iter()
             .map(|filter| {
-                let notifiers = filter
+                let senders = filter
                     .to
                     .iter()
                     .map(|name| {
-                        notifiers
+                        senders
                             .get(name)
                             .ok_or_else(|| {
                                 eyre::eyre!(
-                                    "Notifier named '{name}' was not defined in the configuration",
+                                    "Sender named '{name}' was not defined in the configuration",
                                 )
                             })
                             .map(Clone::clone)
@@ -66,7 +66,7 @@ impl Rule {
 
                 Ok(Self {
                     rule: filter,
-                    destination: notifiers,
+                    destination: senders,
                 })
             })
             .collect()

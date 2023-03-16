@@ -1,13 +1,13 @@
-# Example confifuration for the Event exporter daemon
+# Example confifuration for the Event sender daemon
 ---
 events:
-  # Exports all events to the `matrix` notifier
+  # Exports all events to the `matrix` sender
   - reason: [Started, Completed]
     to: [matrix]
   - type: [Warning]
     to: [matrix, webhook.site]
 
-notifiers:
+senders:
   - name: webhook.site
     spec:
       kind: Webhook

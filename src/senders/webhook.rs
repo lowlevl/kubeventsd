@@ -11,6 +11,8 @@ pub struct Webhook {
 
 impl Webhook {
     pub async fn new(url: url::Url) -> eyre::Result<Self> {
+        tracing::info!("Setting up Webhook sender to '{url}'");
+
         Ok(Self {
             client: reqwest::Client::new(),
             url,
@@ -19,7 +21,7 @@ impl Webhook {
 }
 
 #[async_trait]
-impl super::Notifier for Webhook {
+impl super::Sender for Webhook {
     async fn send(&self, event: &Event) -> eyre::Result<()> {
         tracing::debug!("Sending event as to '{}': {event:?}", self.url);
 

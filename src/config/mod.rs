@@ -14,7 +14,7 @@ pub struct EnvConfig {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub events: Vec<EventFilter>,
-    pub notifiers: Vec<Notifier>,
+    pub senders: Vec<Sender>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -28,14 +28,14 @@ pub struct EventFilter {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Notifier {
+pub struct Sender {
     pub name: String,
-    pub spec: NotifierSpec,
+    pub spec: SenderSpec,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "kind")]
-pub enum NotifierSpec {
+pub enum SenderSpec {
     #[serde(rename_all = "camelCase")]
     Matrix {
         template: String,
