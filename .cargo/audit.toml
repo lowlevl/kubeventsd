@@ -1,0 +1,8 @@
+[advisories]
+ignore = [
+    "RUSTSEC-2020-0071" # `time` is a dependency I don't control
+]
+
+[output]
+deny = ["unmaintained", "unsound", "yanked"]
+quiet = false
