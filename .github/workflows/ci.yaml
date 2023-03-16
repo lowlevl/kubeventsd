@@ -67,8 +67,9 @@ jobs:
           # Create the `artifacts/` directory
           mkdir -p artifacts
 
-          # Copy the built binary file, the ui and the Dockerfile
+          # Copy the built binary file and the Dockerfile
           cp ./target/${{ matrix.target.triple }}/release/${{ env.PROJECT }} artifacts/built
+          cp ./Dockerfile ./artifacts/
 
           # Save the target docker image's os/arch target in artifacts
           echo ${{ matrix.target.os }} > artifacts/os
@@ -91,7 +92,6 @@ jobs:
       DOCKER_BUILDKIT: 1
       # Identify the project name from the repository name
       PROJECT: ${{ github.event.repository.name }}
-      # Set here the docker image name and tag
 
     steps:
       - name: Download artifacts
