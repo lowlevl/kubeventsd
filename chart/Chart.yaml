@@ -1,0 +1,15 @@
+annotations:
+  licenses: GPL-3.0
+apiVersion: v2
+appVersion: 0.0.1
+description: A small k8s event watcher daemon
+home: https://github.com/Nurrl/kubeventsd/tree/main/chart
+keywords:
+  - k8s
+  - events
+  - cluster
+name: kubeventsd
+sources:
+  - https://github.com/Nurrl/kubeventsd/tree/main/chart
+  - https://github.com/Nurrl/kubeventsd
+version: 1.0.0

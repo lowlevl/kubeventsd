@@ -1,0 +1,45 @@
+# Default values for kubeventsd.
+
+# Set the number of replicas, higher than 1 could end up in duplicate notifications
+replicaCount: 1
+
+updateStrategy:
+  # Specify the type of update strategy, 'RollingUpdate' could end up in duplicate notifications
+  type: Recreate
+
+image:
+  registry: ""
+  repository: kubeventsd/kubeventsd
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+kubeventsd:
+  # Set log-level for the project
+  logs: kubeventsd=debug
+  # The configuration of the daemon, as defined in the documentation
+  config:
+    events: []
+    senders: []
+
+secret:
+  # Specifies whether a Secret should be created
+  create: true
+  # The name of the secret to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+  # The list of variables that must be exposed to the daemon
+  data: {}
+
+serviceAccount:
+  # Specifies whether a ServiceAccount should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+rbac:
+  # Specifies whether a ClusterRole and a ClusterRoleBinding should be created
+  create: true
