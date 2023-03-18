@@ -29,9 +29,11 @@ jobs:
       CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout project
+        uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           use-cross: true
           profile: minimal
@@ -40,24 +42,28 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - uses: actions-rs/cargo@v1
+      - name: Build the project
+        uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
           args: --release --all-features --target=${{ matrix.target.triple }}
 
-      - uses: actions-rs/cargo@v1
+      - name: Test the project
+        uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: test
           args: --release --all-features --target=${{ matrix.target.triple }}
 
-      - uses: actions-rs/cargo@v1
+      - name: Check code formatting
+        uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
 
-      - uses: actions-rs/cargo@v1
+      - name: Lint the project
+        uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: clippy
@@ -76,7 +82,8 @@ jobs:
           echo ${{ matrix.target.os }} > artifacts/os
           echo ${{ matrix.target.arch }} > artifacts/arch
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.target.triple }}
           path: artifacts/*
@@ -95,8 +102,21 @@ jobs:
       PROJECT: ${{ github.event.repository.name }}
 
     steps:
+      - name: Checkout project
+        uses: actions/checkout@v3
+
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Setup artifacts for building
+        run: |
+          for path in artifacts/*; do
+            exec="./$(cat ${path}/os)-$(cat ${path}/arch)"
+
+            cp -v "${path}/exec" "${exec}"
+          done
 
       - name: Login to Docker Hub
         uses: docker/login-action@v1
@@ -104,34 +124,16 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Create the image for each platform
-        run: |
-          # For each target arch, build the image, with the specified arch
-          for path in */; do
-            PLATFORM="$(cat ${path}/os)/$(cat ${path}/arch)"
-            IMAGE="${NAME}:latest-$(cat ${path}/arch)"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-            docker build --platform "${PLATFORM}" --tag "${IMAGE}" "${path}"
-            docker push "${IMAGE}"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-            echo "${IMAGE}" >> "./images"
-            echo "Successfully built and pushed the image with the following tag '${IMAGE}' for '${PLATFORM}'"
-          done
-
-      - name: Create the cross-platform images, tag them and push them to the repository
-        run: |
-          # Identify which tags need to deploy according to the ref
-          TAGS=("latest")
-          if [[ "${GITHUB_REF}" =~ ^refs/tags/([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            TAGS+=("${BASH_REMATCH[1]}" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}")
-          fi
-
-          for tag in "${TAGS[@]}"; do
-            IMAGE="${NAME}:${tag}"
-            echo "Tagging and pushing the image '${IMAGE}' to DockerHub"
-
-            # Create the cross-platform image as ${tag}
-            docker manifest create "${IMAGE}" $(cat ./images)
-            # Push it to Docker Hub
-            docker manifest push "${IMAGE}"
-          done
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.NAME }}:${{ github.ref_name }}
