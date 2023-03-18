@@ -15,7 +15,8 @@ This defines filters on the events and to which `senders` the event should be se
 
 - `reason` (_list[str]_): A list of **reasons** that must match the `core/v1:Event` to be forwarded.
 - `type` (_list[str]_): A list of **types** that must match the `core/v1:Event` to be forwarded.
-- `namespace` (_list[str]_): A list of **namespaces** that must match the `core/v1:Event` to be forwarded.
+- `namespace` (_list[str]_): A list of **namespaces** that must match the involved object to be forwarded.
+- `kind` (_list[str]_): A list of **kinds** that must match the involved object to be forwarded.
 
 When a field is ommited, it's considered to be a **wildcard** match.
 

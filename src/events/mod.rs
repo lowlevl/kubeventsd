@@ -33,6 +33,12 @@ pub async fn process(rules: &[Rule], mut event: Event) -> eyre::Result<()> {
             }
         }
 
+        if let (Some(kinds), Some(kind)) = (&rule.kind, &event.involved_object.kind) {
+            if !kinds.contains(kind) {
+                continue;
+            }
+        }
+
         for sender in destination {
             sender.send(&event).await?;
         }

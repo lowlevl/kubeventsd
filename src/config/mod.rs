@@ -23,6 +23,7 @@ pub struct EventFilter {
     #[serde(rename = "type")]
     pub type_: Option<Vec<String>>,
     pub namespace: Option<Vec<String>>,
+    pub kind: Option<Vec<String>>,
 
     pub to: HashSet<String>,
 }
