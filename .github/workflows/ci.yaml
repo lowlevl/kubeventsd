@@ -69,7 +69,7 @@ jobs:
           mkdir -p artifacts
 
           # Copy the built binary file and the Dockerfile
-          cp ./target/${{ matrix.target.triple }}/release/${{ env.PROJECT }} artifacts/built
+          cp ./target/${{ matrix.target.triple }}/release/${{ env.PROJECT }} artifacts/exec
           cp ./Dockerfile ./artifacts/
 
           # Save the target docker image's os/arch target in artifacts
